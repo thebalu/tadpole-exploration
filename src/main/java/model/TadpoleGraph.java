@@ -1,5 +1,6 @@
 package model;
 
+import org.graphstream.algorithm.Dijkstra;
 import org.graphstream.graph.Element;
 import org.graphstream.graph.ElementNotFoundException;
 import org.graphstream.graph.Graph;
@@ -107,16 +108,16 @@ public class TadpoleGraph {
 
         graph.nodes().forEach(node -> {
             if (visible.contains(node.getId())) {
-                node.setAttribute("ui.style","fill-color: green;");
+                node.setAttribute("ui.style", "fill-color: green;");
             }
             if (visited.contains(node.getId())) {
-                node.setAttribute("ui.style","fill-color: blue;");
+                node.setAttribute("ui.style", "fill-color: blue;");
             }
             if (node.getId().equals(currentNode)) {
-                node.setAttribute("ui.style","fill-color: orange;");
+                node.setAttribute("ui.style", "fill-color: orange;");
             }
             if (node.getId().equals(startNode)) {
-                node.setAttribute("ui.style","fill-color: red;");
+                node.setAttribute("ui.style", "fill-color: red;");
             }
         });
 
@@ -128,5 +129,36 @@ public class TadpoleGraph {
             rand = new Random();
         }
         return (int) Math.max(1, Math.round(rand.nextGaussian() * sd + mean));
+    }
+
+    public Set<String> getNodes() {
+        return graph.nodes().map(Element::getId).collect(Collectors.toSet());
+    }
+
+    public Set<String> getVisible() {
+        return visible;
+    }
+
+    public Set<String> getVisited() {
+        return visible;
+    }
+
+    public Set<String> getUnvisitedVisible() {
+        return visible.stream().filter(n -> !visited.contains(n)).collect(Collectors.toSet());
+    }
+
+    private long shortestPath(String from, String to) {
+        if (from.equals(to)) return 0;
+
+        Node toNode = graph.getNode(to);
+
+        Dijkstra dijkstra = new Dijkstra(Dijkstra.Element.EDGE, "dijkstraResult", "weight");
+        dijkstra.init(graph);
+        dijkstra.setSource(from);
+        dijkstra.compute();
+
+        graph.nodes().forEach(node -> System.out.println("Node " + node.getId() + ": " + dijkstra.getPathLength(node)));
+        return Math.round(dijkstra.getPathLength(toNode));
+
     }
 }
