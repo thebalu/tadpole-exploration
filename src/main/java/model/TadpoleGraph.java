@@ -1,27 +1,36 @@
 package model;
 
+import org.graphstream.graph.Element;
+import org.graphstream.graph.ElementNotFoundException;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.SingleGraph;
 import org.graphstream.graph.implementations.SingleNode;
 
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class TadpoleGraph {
 
-    private Graph graph;
-    private UUID uuid = UUID.randomUUID();
+    private final Graph graph;
+    private final UUID uuid = UUID.randomUUID();
     private Random rand;
 
-    private String startNode;
+    private final String startNode;
+    private String currentNode;
+
+    private Set<String> visible;
+    private Set<String> visited;
 
     public TadpoleGraph(int cycleVertices, int stemVertices) {
-        this(cycleVertices, stemVertices, 100, 200);
+        this(cycleVertices, stemVertices, 100, 100, Optional.empty());
     }
 
-    public TadpoleGraph(int cycleVertices, int stemVertices, int weightMean, int weightSd) {
+    public TadpoleGraph(int cycleVertices, int stemVertices, String startNode) {
+        this(cycleVertices, stemVertices, 100, 200, Optional.of(startNode));
+    }
+
+    public TadpoleGraph(int cycleVertices, int stemVertices, int weightMean, int weightSd, Optional<String> startNode) {
 
         graph = new SingleGraph("Tadpole " + uuid);
         graph.setAttribute("ui.stylesheet",
@@ -67,9 +76,50 @@ public class TadpoleGraph {
                         "weight", weight,
                         "ui.label", weight
                 ));
+
+        // Start at random if no start node given
+        this.startNode = startNode.orElse(graph.getNode(rand.nextInt(graph.getNodeCount())).getId());
+        if (graph.getNode(this.startNode) == null) {
+            throw new ElementNotFoundException("Starting node not found in graph");
+        }
+
+        graph.getNode(this.startNode).setAttribute("start", "true");
+        graph.getNode(this.startNode).setAttribute("current", "true");
+        this.currentNode = this.startNode;
+
+
+        visible = new HashSet<>();
+        visited = new HashSet<>();
+
+        visited.add(this.startNode);
+
+        // Add start node and all neighbors to visible
+        visible.add(this.startNode);
+        visible.addAll(graph
+                .getNode(this.startNode)
+                .neighborNodes()
+                .map(Element::getId)
+                .collect(Collectors.toSet()));
     }
 
+
     public void display() {
+
+        graph.nodes().forEach(node -> {
+            if (visible.contains(node.getId())) {
+                node.setAttribute("ui.style","fill-color: green;");
+            }
+            if (visited.contains(node.getId())) {
+                node.setAttribute("ui.style","fill-color: blue;");
+            }
+            if (node.getId().equals(currentNode)) {
+                node.setAttribute("ui.style","fill-color: orange;");
+            }
+            if (node.getId().equals(startNode)) {
+                node.setAttribute("ui.style","fill-color: red;");
+            }
+        });
+
         graph.display();
     }
 
