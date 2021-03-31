@@ -1,5 +1,6 @@
 package model;
 
+import org.apache.commons.math3.util.Pair;
 import org.graphstream.algorithm.Dijkstra;
 import org.graphstream.graph.Element;
 import org.graphstream.graph.ElementNotFoundException;
@@ -7,6 +8,10 @@ import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.SingleGraph;
 import org.graphstream.graph.implementations.SingleNode;
+import org.graphstream.ui.swing_viewer.SwingViewer;
+import org.graphstream.ui.swing_viewer.util.DefaultShortcutManager;
+import org.graphstream.ui.view.Viewer;
+import org.graphstream.ui.view.ViewerPipe;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,6 +28,8 @@ public class TadpoleGraph {
     private Set<String> visible;
     private Set<String> visited;
 
+    private long totalCost;
+
     public TadpoleGraph(int cycleVertices, int stemVertices) {
         this(cycleVertices, stemVertices, 100, 100, Optional.empty());
     }
@@ -37,6 +44,7 @@ public class TadpoleGraph {
         graph.setAttribute("ui.stylesheet",
                 "edge{text-background-mode: plain; text-size: 20;}" +
                         "node{text-alignment: at-right; text-size: 20;}");
+
         int weight;
 
         for (int i = 0; i < stemVertices; i++) {
@@ -101,10 +109,22 @@ public class TadpoleGraph {
                 .neighborNodes()
                 .map(Element::getId)
                 .collect(Collectors.toSet()));
+
+        totalCost = 0;
+
+        updateAttributes();
     }
 
+    public Viewer display() {
+        updateAttributes();
+        return graph.display();
+    }
 
-    public void display() {
+    public void addViewerPipe(ViewerPipe viewerPipe) {
+        viewerPipe.addSink(graph);
+    }
+
+    public void updateAttributes() {
 
         graph.nodes().forEach(node -> {
             if (visible.contains(node.getId())) {
@@ -121,7 +141,6 @@ public class TadpoleGraph {
             }
         });
 
-        graph.display();
     }
 
     private int randomPositiveWeight(int mean, int sd) {
@@ -147,18 +166,49 @@ public class TadpoleGraph {
         return visible.stream().filter(n -> !visited.contains(n)).collect(Collectors.toSet());
     }
 
-    private long shortestPath(String from, String to) {
-        if (from.equals(to)) return 0;
-
-        Node toNode = graph.getNode(to);
+    // Compute next visitable node greedily
+    public Pair<String, Long> nextVisit(String from) {
 
         Dijkstra dijkstra = new Dijkstra(Dijkstra.Element.EDGE, "dijkstraResult", "weight");
         dijkstra.init(graph);
         dijkstra.setSource(from);
         dijkstra.compute();
 
-        graph.nodes().forEach(node -> System.out.println("Node " + node.getId() + ": " + dijkstra.getPathLength(node)));
-        return Math.round(dijkstra.getPathLength(toNode));
+        // Get smallest visitable node, or the start if there are no more unvisited
+        String nextVisit = getUnvisitedVisible()
+                .stream()
+                .min(Comparator.comparingDouble(node -> dijkstra.getPathLength(graph.getNode(node))))
+                .orElse(startNode);
 
+        Pair<String, Long> visitWithCost = Pair.create(nextVisit, Math.round(dijkstra.getPathLength(graph.getNode(nextVisit))));
+        dijkstra.clear();
+        return visitWithCost;
+    }
+
+    public long step() {
+
+        Pair<String, Long> nextNodeAndCost = nextVisit(currentNode);
+        String nextNode = nextNodeAndCost.getFirst();
+        Long nextCost = nextNodeAndCost.getSecond();
+
+        if(visited.contains(nextNode) && !nextNode.equals(startNode)) {
+            throw new RuntimeException("Trying to visit an already visited node");
+        }
+
+        if (!visible.contains(nextNode)) {
+            throw new RuntimeException("Trying to visit an invisible node");
+        }
+
+        totalCost += nextCost;
+        currentNode = nextNode;
+        visited.add(currentNode);
+        visible.addAll(graph.getNode(currentNode).neighborNodes().map(node -> node.getId()).collect(Collectors.toSet()));
+
+        System.out.println("Visited node " + currentNode + ", path cost: " + nextCost + ", total cost: " + totalCost);
+        return totalCost;
+    }
+
+    public boolean isDone() {
+        return visited.size() == graph.nodes().count();
     }
 }
