@@ -2,6 +2,9 @@ package main;
 
 import model.TadpoleGraph;
 
+/**
+  * This is the crazy jumping around version. See {@link Clicks} for a better one (but it is work in progress)
+  */
 public class TadpoleExploration {
     public static void main(String[] args) {
         System.out.println("Hello world");

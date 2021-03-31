@@ -1,13 +1,13 @@
-package model;
+package main;
 
+import model.TadpoleGraph;
 import org.graphstream.ui.view.Viewer;
 import org.graphstream.ui.view.ViewerListener;
 import org.graphstream.ui.view.ViewerPipe;
 
+// TODO events don't do anything. Make the loop advance on keypresses.
 public class Clicks implements ViewerListener {
     protected boolean loop = true;
-
-    int x = 0;
 
     public static void main(String args[]) {
         new Clicks();
@@ -24,13 +24,10 @@ public class Clicks implements ViewerListener {
         // Dependency injection so we don't have to expose graph
         tg.addViewerPipe(fromViewer);
 
-
-        System.out.println("hi");
         while(loop && !tg.isDone()) {
             fromViewer.pump(); // or fromViewer.blockingPump(); in the nightly builds
             tg.step();
             tg.updateAttributes();
-//            System.out.println(x);
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
@@ -49,7 +46,6 @@ public class Clicks implements ViewerListener {
     @Override
     public void buttonPushed(String id) {
         System.out.println("Button pushed on node "+id);
-        x++;
     }
 
     public void buttonReleased(String id) {
