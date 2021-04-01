@@ -1,13 +1,16 @@
 package main;
 
 import model.TadpoleGraph;
+import org.graphstream.ui.swing_viewer.util.DefaultMouseManager;
 import org.graphstream.ui.view.Viewer;
 import org.graphstream.ui.view.ViewerListener;
 import org.graphstream.ui.view.ViewerPipe;
 
-// TODO events don't do anything. Make the loop advance on keypresses.
-public class Clicks implements ViewerListener {
+import java.awt.event.MouseEvent;
+
+public class Clicks implements ViewerListener{
     protected boolean loop = true;
+    protected volatile boolean stop = true;
 
     public static void main(String args[]) {
         new Clicks();
@@ -23,16 +26,24 @@ public class Clicks implements ViewerListener {
         fromViewer.addViewerListener(this);
         // Dependency injection so we don't have to expose graph
         tg.addViewerPipe(fromViewer);
+        viewer.getDefaultView().enableMouseOptions();
+        //To override mouse clicked event
+        viewer.getDefaultView().setMouseManager(new InternalMouseManager());
+
+        while (stop) {
+            Thread.onSpinWait();
+        }
+        stop = true;
 
         while(loop && !tg.isDone()) {
             fromViewer.pump(); // or fromViewer.blockingPump(); in the nightly builds
             tg.step();
             tg.updateAttributes();
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            //Wait for mouse clicked event
+            while (stop) {
+                Thread.onSpinWait();
             }
+            stop = true;
         }
         tg.step();
         tg.updateAttributes();
@@ -53,11 +64,16 @@ public class Clicks implements ViewerListener {
     }
 
     @Override
-    public void mouseOver(String id) {
-        System.out.println("mouse");
-    }
+    public void mouseOver(String id) {}
 
     @Override
-    public void mouseLeft(String id) {
+    public void mouseLeft(String id) {}
+
+    // On click do a step in the graph
+    class InternalMouseManager extends DefaultMouseManager {
+        @Override
+        public void mouseClicked(MouseEvent e) {
+            stop = false;
+        }
     }
 }

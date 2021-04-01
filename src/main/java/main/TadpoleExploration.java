@@ -17,7 +17,7 @@ public class TadpoleExploration {
 
         while(!tg.isDone()) {
             tg.step();
-            tg.display();
+            tg.updateAttributes();
             try
             {
                 Thread.sleep(1000);
