@@ -29,14 +29,14 @@ public class Clicks implements ViewerListener{
         viewer.getDefaultView().enableMouseOptions();
         //To override mouse clicked event
         viewer.getDefaultView().setMouseManager(new InternalMouseManager());
-
         while (stop) {
             Thread.onSpinWait();
         }
         stop = true;
 
         while(loop && !tg.isDone()) {
-            fromViewer.pump(); // or fromViewer.blockingPump(); in the nightly builds
+            //fromViewer.pump(); // or fromViewer.blockingPump(); in the nightly builds
+
             tg.step();
             tg.updateAttributes();
             //Wait for mouse clicked event
@@ -47,7 +47,7 @@ public class Clicks implements ViewerListener{
         }
         tg.step();
         tg.updateAttributes();
-        fromViewer.pump();
+        //fromViewer.pump();
     }
 
     public void viewClosed(String id) {

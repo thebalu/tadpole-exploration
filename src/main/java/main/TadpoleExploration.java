@@ -27,5 +27,7 @@ public class TadpoleExploration {
                 Thread.currentThread().interrupt();
             }
         }
+        tg.step();
+        tg.updateAttributes();
     }
 }
