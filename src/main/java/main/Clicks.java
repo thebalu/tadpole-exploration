@@ -19,7 +19,7 @@ public class Clicks implements ViewerListener{
         System.setProperty("org.graphstream.ui", "swing");
 
         TadpoleGraph tg = new TadpoleGraph(8, 7);
-
+        tg.setEdgeWeight("C3-C4", 999);
         Viewer viewer = tg.display();
 //        viewer.setCloseFramePolicy(Viewer.CloseFramePolicy.HIDE_ONLY);
         ViewerPipe fromViewer = viewer.newViewerPipe();

@@ -2,6 +2,7 @@ package model;
 
 import org.apache.commons.math3.util.Pair;
 import org.graphstream.algorithm.Dijkstra;
+import org.graphstream.graph.Edge;
 import org.graphstream.graph.Element;
 import org.graphstream.graph.ElementNotFoundException;
 import org.graphstream.graph.Graph;
@@ -16,6 +17,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import java.lang.Math;
+import java.util.stream.Stream;
 
 public class TadpoleGraph {
 
@@ -34,7 +36,7 @@ public class TadpoleGraph {
     private SpriteManager sman;
     private Set<Sprite> sprites;
     private final String infoSprite;
-    private List<Pair<Double,Double>> cycleCoordinate;
+    private List<Pair<Double, Double>> cycleCoordinate;
 
     private long optimalCost;
 
@@ -54,7 +56,7 @@ public class TadpoleGraph {
                         "node{text-alignment: center; text-size: 16; size: 24px; text-color:white; text-style: bold; text-offset: 0, -3;}");
 
         int weight;
-        int startCoord = cycleVertices*3;
+        int startCoord = cycleVertices * 3;
         for (int i = 0; i < stemVertices; i++) {
             graph.addNode("S" + i).setAttribute("ui.label", "S" + i);
             if (i > 0) {
@@ -65,12 +67,12 @@ public class TadpoleGraph {
                                 "weight", weight,
                                 "ui.label", weight
                         ));
-                optimalCost += weight*2;
+                optimalCost += weight * 2;
             }
-            graph.getNode("S"+i).setAttribute("xyz", startCoord+15*(i+1), 0, 0);
+            graph.getNode("S" + i).setAttribute("xyz", startCoord + 15 * (i + 1), 0, 0);
         }
 
-        calculateCircleNodeCoordinates(cycleVertices*3,cycleVertices);
+        calculateCircleNodeCoordinates(cycleVertices * 3, cycleVertices);
         int cycleCost = 0;
         int maxEdge = 0;
         for (int i = 0; i < cycleVertices; i++) {
@@ -84,9 +86,9 @@ public class TadpoleGraph {
                                 "ui.label", weight
                         ));
                 cycleCost += weight;
-                if(maxEdge < weight) maxEdge = weight;
+                if (maxEdge < weight) { maxEdge = weight; }
             }
-            graph.getNode("C"+i).setAttribute("xyz", cycleCoordinate.get(i).getFirst(), cycleCoordinate.get(i).getSecond(), 0);
+            graph.getNode("C" + i).setAttribute("xyz", cycleCoordinate.get(i).getFirst(), cycleCoordinate.get(i).getSecond(), 0);
         }
 
         weight = randomPositiveWeight(weightMean, weightSd);
@@ -95,7 +97,7 @@ public class TadpoleGraph {
                         "weight", weight,
                         "ui.label", weight
                 ));
-        optimalCost += 2*weight;
+        optimalCost += 2 * weight;
 
         weight = randomPositiveWeight(weightMean, weightSd);
         graph.addEdge("C" + (cycleVertices - 1) + "-C0", "C" + (cycleVertices - 1), "C0")
@@ -104,9 +106,9 @@ public class TadpoleGraph {
                         "ui.label", weight
                 ));
         cycleCost += weight;
-        if(maxEdge < weight) maxEdge = weight;
+        if (maxEdge < weight) { maxEdge = weight; }
         //The shape of the optimal route
-        optimalCost += Math.min(cycleCost ,(cycleCost-maxEdge)*2);
+        optimalCost += Math.min(cycleCost, (cycleCost - maxEdge) * 2);
 
         // Start at random if no start node given
         this.startNode = startNode.orElse(graph.getNode(rand.nextInt(graph.getNodeCount())).getId());
@@ -117,7 +119,6 @@ public class TadpoleGraph {
         graph.getNode(this.startNode).setAttribute("start", "true");
         graph.getNode(this.startNode).setAttribute("current", "true");
         this.currentNode = this.startNode;
-
 
         visible = new HashSet<>();
         visited = new HashSet<>();
@@ -144,21 +145,27 @@ public class TadpoleGraph {
                         "text-background-mode: rounded-box; size:0px;",
                 "ui.label", "Total cost: 0"
         ));
-        info.setPosition( 50, 40, 0);
+        info.setPosition(50, 40, 0);
 
         updateAttributes();
     }
 
-    //First coordinate is (r,0), then rotate this around the origo to get the rest of the coordinates on the circle
-    private void calculateCircleNodeCoordinates(double r, int cycleL){
-        cycleCoordinate = new ArrayList<>();
-        cycleCoordinate.add(Pair.create(r,0.0));
-        for(int i = 1; i < cycleL; i++) {
-            double rad = Math.toRadians(360.0/cycleL * i);
-            double x = Math.round(r*Math.cos(rad));
-            double y = Math.round(r*Math.sin(rad));
+    public void setEdgeWeight(String edge, int weight) {
+        graph.getEdge(edge).setAttribute("weight", weight);
+        graph.getEdge(edge).setAttribute("ui.label", weight);
+        updateAttributes();
+    }
 
-            Pair<Double,Double> coord = Pair.create(x,y);
+    //First coordinate is (r,0), then rotate this around the origo to get the rest of the coordinates on the circle
+    private void calculateCircleNodeCoordinates(double r, int cycleL) {
+        cycleCoordinate = new ArrayList<>();
+        cycleCoordinate.add(Pair.create(r, 0.0));
+        for (int i = 1; i < cycleL; i++) {
+            double rad = Math.toRadians(360.0 / cycleL * i);
+            double x = Math.round(r * Math.cos(rad));
+            double y = Math.round(r * Math.sin(rad));
+
+            Pair<Double, Double> coord = Pair.create(x, y);
             cycleCoordinate.add(coord);
         }
     }
@@ -175,9 +182,9 @@ public class TadpoleGraph {
     public void updateAttributes() {
         calculateDistances(currentNode);
         //Add distance sprite labels to visible but not visited nodes
-        for(Sprite s: sprites) s.removeAttribute("ui.label");
+        for (Sprite s : sprites) { s.removeAttribute("ui.label"); }
         sprites.clear();
-        for(String id : getUnvisitedVisible()) {
+        for (String id : getUnvisitedVisible()) {
             Sprite s = sman.getSprite("S_" + id);
             if (s == null) {
                 s = sman.addSprite("S_" + id);
@@ -244,15 +251,39 @@ public class TadpoleGraph {
         return visitWithCost;
     }
 
-    public void calculateDistances(String from){
+    public void calculateDistances(String from) {
+
+        Graph knownGraph = new SingleGraph("Known " + uuid);
+        graph.nodes()
+                .filter(node -> visible.contains(node.getId()))
+                .forEach(node ->
+                        knownGraph.addNode(String.valueOf(node)));
+
+        graph
+                .edges()
+                .filter(edge ->
+                        (visible.contains(edge.getSourceNode().getId()) && visited.contains(edge.getTargetNode().getId())) ||
+                                (visited.contains(edge.getSourceNode().getId()) && visible.contains(edge.getTargetNode().getId())) ||
+                                (visited.contains(edge.getSourceNode().getId()) && visited.contains(edge.getTargetNode().getId())))
+                .forEach(edge -> {
+                            System.out.println(edge.getId());
+                            Edge newEdge = knownGraph
+                                    .addEdge(edge.getId(), edge.getSourceNode().getId(), edge.getTargetNode().getId());
+                            newEdge.setAttribute("weight", edge.getAttribute("weight", Integer.class));
+                        }
+                );
+
         Dijkstra dijkstra = new Dijkstra(Dijkstra.Element.EDGE, "dijkstraResult", "weight");
-        dijkstra.init(graph);
+        dijkstra.init(knownGraph);
         dijkstra.setSource(from);
         dijkstra.compute();
 
         //Get unvisited but visible dist
-        if(getUnvisitedVisible().size() == 0) graph.getNode(startNode).setAttribute("dist",dijkstra.getPathLength(graph.getNode(startNode)));
-        else getUnvisitedVisible().forEach(node -> graph.getNode(node).setAttribute("dist",dijkstra.getPathLength(graph.getNode(node))));
+        if (getUnvisitedVisible().size() == 0) {
+            graph.getNode(startNode).setAttribute("dist", dijkstra.getPathLength(knownGraph.getNode(startNode)));
+        } else {
+            getUnvisitedVisible().forEach(node -> graph.getNode(node).setAttribute("dist", dijkstra.getPathLength(knownGraph.getNode(node))));
+        }
 
         dijkstra.clear();
     }
@@ -262,7 +293,7 @@ public class TadpoleGraph {
         String nextNode = nextNodeAndCost.getFirst();
         Long nextCost = nextNodeAndCost.getSecond();
 
-        if(visited.contains(nextNode) && !nextNode.equals(startNode)) {
+        if (visited.contains(nextNode) && !nextNode.equals(startNode)) {
             throw new RuntimeException("Trying to visit an already visited node");
         }
 
@@ -277,12 +308,11 @@ public class TadpoleGraph {
 
         System.out.println("Visited node " + currentNode + ", path cost: " + nextCost + ", total cost: " + totalCost);
 
-        if(nextNode.equals(startNode))
+        if (nextNode.equals(startNode)) {
             sman.getSprite(infoSprite).setAttribute("ui.label",
-                    "Total cost: " + totalCost + ", Opt: "+optimalCost+", " +
-                            "Competitive Ratio: " + Math.round((double)totalCost/(double)optimalCost * 1000.0) / 1000.0);
-        else
-            sman.getSprite(infoSprite).setAttribute("ui.label", "Total cost: " + totalCost);
+                    "Total cost: " + totalCost + ", Opt: " + optimalCost + ", " +
+                            "Competitive Ratio: " + Math.round((double) totalCost / (double) optimalCost * 1000.0) / 1000.0);
+        } else { sman.getSprite(infoSprite).setAttribute("ui.label", "Total cost: " + totalCost); }
         return totalCost;
     }
 
