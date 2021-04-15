@@ -38,8 +38,6 @@ public class TadpoleGraph {
     private final String infoSprite;
     private List<Pair<Double, Double>> cycleCoordinate;
 
-    private long optimalCost;
-
     public TadpoleGraph(int cycleVertices, int stemVertices) {
         this(cycleVertices, stemVertices, 100, 100, Optional.empty());
     }
@@ -67,14 +65,11 @@ public class TadpoleGraph {
                                 "weight", weight,
                                 "ui.label", weight
                         ));
-                optimalCost += weight * 2;
             }
             graph.getNode("S" + i).setAttribute("xyz", startCoord + 15 * (i + 1), 0, 0);
         }
 
         calculateCircleNodeCoordinates(cycleVertices * 3, cycleVertices);
-        int cycleCost = 0;
-        int maxEdge = 0;
         for (int i = 0; i < cycleVertices; i++) {
             graph.addNode("C" + i).setAttribute("ui.label", "C" + i);
             if (i > 0) {
@@ -85,8 +80,6 @@ public class TadpoleGraph {
                                 "weight", weight,
                                 "ui.label", weight
                         ));
-                cycleCost += weight;
-                if (maxEdge < weight) { maxEdge = weight; }
             }
             graph.getNode("C" + i).setAttribute("xyz", cycleCoordinate.get(i).getFirst(), cycleCoordinate.get(i).getSecond(), 0);
         }
@@ -97,7 +90,6 @@ public class TadpoleGraph {
                         "weight", weight,
                         "ui.label", weight
                 ));
-        optimalCost += 2 * weight;
 
         weight = randomPositiveWeight(weightMean, weightSd);
         graph.addEdge("C" + (cycleVertices - 1) + "-C0", "C" + (cycleVertices - 1), "C0")
@@ -105,10 +97,6 @@ public class TadpoleGraph {
                         "weight", weight,
                         "ui.label", weight
                 ));
-        cycleCost += weight;
-        if (maxEdge < weight) { maxEdge = weight; }
-        //The shape of the optimal route
-        optimalCost += Math.min(cycleCost, (cycleCost - maxEdge) * 2);
 
         // Start at random if no start node given
         this.startNode = startNode.orElse(graph.getNode(rand.nextInt(graph.getNodeCount())).getId());
@@ -184,7 +172,7 @@ public class TadpoleGraph {
         //Add distance sprite labels to visible but not visited nodes
         for (Sprite s : sprites) { s.removeAttribute("ui.label"); }
         sprites.clear();
-        for (String id : getUnvisitedVisible()) {
+        for (String id : (getUnvisitedVisible().size() == 0 ? new ArrayList<String>(Collections.singleton(startNode)) :getUnvisitedVisible())) {
             Sprite s = sman.getSprite("S_" + id);
             if (s == null) {
                 s = sman.addSprite("S_" + id);
@@ -251,6 +239,31 @@ public class TadpoleGraph {
         return visitWithCost;
     }
 
+    private int getOptimalCost(){
+        int optCost, cycleCost;
+        int maxCycleEdge = 0;
+        optCost = graph
+                .edges()
+                .filter(edge ->
+                        (edge.getSourceNode().getId().startsWith("S") || edge.getTargetNode().getId().startsWith("S")))
+                .mapToInt(edge -> 2 * (int) edge.getAttribute("weight"))
+                .sum();
+        cycleCost = graph
+                .edges()
+                .filter(edge ->
+                        edge.getSourceNode().getId().startsWith("C"))
+                .mapToInt(edge -> (int) edge.getAttribute("weight"))
+                .sum();
+        maxCycleEdge = graph
+                .edges()
+                .filter(edge ->
+                        edge.getSourceNode().getId().startsWith("C"))
+                .mapToInt(edge -> (int) edge.getAttribute("weight"))
+                .max().orElse(0);
+        if(cycleCost > (cycleCost-maxCycleEdge)*2) cycleCost = (cycleCost-maxCycleEdge)*2;
+        return optCost+cycleCost;
+    }
+
     public void calculateDistances(String from) {
 
         Graph knownGraph = new SingleGraph("Known " + uuid);
@@ -308,10 +321,11 @@ public class TadpoleGraph {
 
         System.out.println("Visited node " + currentNode + ", path cost: " + nextCost + ", total cost: " + totalCost);
 
+        int optCost = getOptimalCost();
         if (nextNode.equals(startNode)) {
             sman.getSprite(infoSprite).setAttribute("ui.label",
-                    "Total cost: " + totalCost + ", Opt: " + optimalCost + ", " +
-                            "Competitive Ratio: " + Math.round((double) totalCost / (double) optimalCost * 1000.0) / 1000.0);
+                    "Total cost: " + totalCost + ", Opt: " + optCost + ", " +
+                            "Competitive Ratio: " + Math.round((double) totalCost / (double) optCost * 1000.0) / 1000.0);
         } else { sman.getSprite(infoSprite).setAttribute("ui.label", "Total cost: " + totalCost); }
         return totalCost;
     }

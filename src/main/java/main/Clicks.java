@@ -7,6 +7,7 @@ import org.graphstream.ui.view.ViewerListener;
 import org.graphstream.ui.view.ViewerPipe;
 
 import java.awt.event.MouseEvent;
+import java.util.Optional;
 
 public class Clicks implements ViewerListener{
     protected boolean loop = true;
@@ -19,9 +20,10 @@ public class Clicks implements ViewerListener{
         System.setProperty("org.graphstream.ui", "swing");
 
         TadpoleGraph tg = new TadpoleGraph(8, 7);
-        tg.setEdgeWeight("C3-C4", 999);
+        //TadpoleGraph tg = new TadpoleGraph(8, 7, 100, 10, Optional.of("C3"));
+        //tg.setEdgeWeight("C3-C4", 999);
         Viewer viewer = tg.display();
-//        viewer.setCloseFramePolicy(Viewer.CloseFramePolicy.HIDE_ONLY);
+        //viewer.setCloseFramePolicy(Viewer.CloseFramePolicy.HIDE_ONLY);
         ViewerPipe fromViewer = viewer.newViewerPipe();
         fromViewer.addViewerListener(this);
         // Dependency injection so we don't have to expose graph
